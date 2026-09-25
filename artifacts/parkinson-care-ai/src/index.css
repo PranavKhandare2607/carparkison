@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --font-sans: var(--app-font-sans);
+  --font-display: var(--app-font-display);
+}
+
+:root {
+  --background: 42 38% 97%;
+  --foreground: 201 31% 18%;
+  --card: 0 0% 100%;
+  --card-foreground: 201 31% 18%;
+  --border: 187 20% 86%;
+  --input: 187 20% 80%;
+  --ring: 169 42% 37%;
+  --primary: 169 42% 37%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 190 36% 92%;
+  --secondary-foreground: 192 41% 24%;
+  --muted: 44 25% 93%;
+  --muted-foreground: 201 14% 45%;
+  --accent: 28 70% 67%;
+  --accent-foreground: 201 31% 18%;
+  --destructive: 4 66% 49%;
+  --app-font-sans: 'DM Sans', sans-serif;
+  --app-font-display: 'Manrope', sans-serif;
+  --radius: 1rem;
+}
+
+.dark {
+  --background: 201 31% 13%;
+  --foreground: 42 38% 96%;
+  --card: 201 28% 17%;
+  --card-foreground: 42 38% 96%;
+  --border: 201 18% 28%;
+  --input: 201 18% 34%;
+  --ring: 169 42% 56%;
+  --primary: 169 42% 56%;
+  --primary-foreground: 201 31% 13%;
+  --secondary: 201 20% 25%;
+  --secondary-foreground: 42 38% 96%;
+  --muted: 201 19% 23%;
+  --muted-foreground: 201 12% 70%;
+  --accent: 28 70% 67%;
+  --accent-foreground: 201 31% 13%;
+  --destructive: 4 66% 60%;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: var(--app-font-sans); }
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; text-decoration: none; }
+
+.shell-bg { background: radial-gradient(circle at 90% 4%, hsl(169 42% 37% / .08), transparent 28rem), hsl(var(--background)); }
+.display { font-family: var(--app-font-display); }
+.card { border: 1px solid hsl(var(--border)); background: hsl(var(--card)); border-radius: 1.2rem; box-shadow: 0 10px 30px hsl(190 30% 25% / .05); }
+.soft-grid { background-image: linear-gradient(hsl(187 20% 86% / .25) 1px, transparent 1px), linear-gradient(90deg, hsl(187 20% 86% / .25) 1px, transparent 1px); background-size: 26px 26px; }
+.fade-up { animation: fade-up .45s ease both; }
+.fade-up-2 { animation: fade-up .45s .08s ease both; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.focus-ring:focus-visible { outline: 3px solid hsl(var(--accent)); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; scroll-behavior: auto !important; } }

@@ -1,22 +1,25 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Parkinson Care AI API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: dashboard
+  - name: medicines
+  - name: chat
+  - name: emergency
+  - name: services
+  - name: profile
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +27,730 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get the patient's dashboard summary
+      responses:
+        "200":
+          description: Dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /medicines:
+    get:
+      operationId: listMedicines
+      tags: [medicines]
+      summary: List the patient's medicines
+      responses:
+        "200":
+          description: Medicines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Medicine"
+    post:
+      operationId: createMedicine
+      tags: [medicines]
+      summary: Add a medicine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MedicineInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medicine"
+  /medicines/{id}:
+    put:
+      operationId: updateMedicine
+      tags: [medicines]
+      summary: Update a medicine
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MedicineInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medicine"
+    delete:
+      operationId: deleteMedicine
+      tags: [medicines]
+      summary: Delete a medicine
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Deleted
+  /dose-status:
+    get:
+      operationId: listDoseStatus
+      tags: [medicines]
+      summary: List dose status
+      responses:
+        "200":
+          description: Doses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dose"
+    post:
+      operationId: updateDoseStatus
+      tags: [medicines]
+      summary: Mark a dose taken or missed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DoseStatusInput"
+      responses:
+        "200":
+          description: Updated dose
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dose"
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [dashboard]
+      summary: List notifications
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+  /notifications/{id}/read:
+    put:
+      operationId: markNotificationRead
+      tags: [dashboard]
+      summary: Mark a notification as read
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+  /chat:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Ask the medication assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatInput"
+      responses:
+        "200":
+          description: Assistant response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+  /chat/history:
+    get:
+      operationId: getChatHistory
+      tags: [chat]
+      summary: Get chat history
+      responses:
+        "200":
+          description: Chat history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+  /ai-risk:
+    get:
+      operationId: getAiRisk
+      tags: [dashboard]
+      summary: Get medication adherence risk
+      responses:
+        "200":
+          description: Risk analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiskAnalysis"
+  /caregiver:
+    get:
+      operationId: getCaregiver
+      tags: [profile]
+      summary: Get caregiver
+      responses:
+        "200":
+          description: Caregiver
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Caregiver"
+    put:
+      operationId: updateCaregiver
+      tags: [profile]
+      summary: Update caregiver
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaregiverInput"
+      responses:
+        "200":
+          description: Caregiver
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Caregiver"
+  /emergency/sos:
+    post:
+      operationId: activateEmergency
+      tags: [emergency]
+      summary: Create an emergency SOS event
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationInput"
+      responses:
+        "201":
+          description: SOS event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmergencyEvent"
+  /emergency/{id}/cancel:
+    post:
+      operationId: cancelEmergency
+      tags: [emergency]
+      summary: Cancel an emergency event
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmergencyEvent"
+  /emergency/history:
+    get:
+      operationId: listEmergencyHistory
+      tags: [emergency]
+      summary: List emergency events
+      responses:
+        "200":
+          description: Emergency events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmergencyEvent"
+  /location/current:
+    get:
+      operationId: getCurrentLocation
+      tags: [emergency]
+      summary: Get saved location
+      responses:
+        "200":
+          description: Location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+  /location/update:
+    post:
+      operationId: updateLocation
+      tags: [emergency]
+      summary: Save current location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationInput"
+      responses:
+        "200":
+          description: Location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+  /nearby/hospitals:
+    get:
+      operationId: listHospitals
+      tags: [services]
+      summary: List nearby hospitals
+      responses:
+        "200":
+          description: Hospitals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Place"
+  /nearby/pharmacies:
+    get:
+      operationId: listPharmacies
+      tags: [services]
+      summary: List nearby pharmacies
+      responses:
+        "200":
+          description: Pharmacies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Place"
+  /nearby/ambulances:
+    get:
+      operationId: listAmbulances
+      tags: [services]
+      summary: List nearby emergency services
+      responses:
+        "200":
+          description: Emergency services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Place"
+  /appointments:
+    get:
+      operationId: listAppointments
+      tags: [services]
+      summary: List appointment requests
+      responses:
+        "200":
+          description: Appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Appointment"
+    post:
+      operationId: createAppointment
+      tags: [services]
+      summary: Request an appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentInput"
+      responses:
+        "201":
+          description: Appointment request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+  /medicine/search:
+    get:
+      operationId: searchMedicines
+      tags: [services]
+      summary: Search medicine availability
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MedicineSearchResult"
+  /medicine/orders:
+    get:
+      operationId: listMedicineOrders
+      tags: [services]
+      summary: List medicine order requests
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MedicineOrder"
+    post:
+      operationId: createMedicineOrder
+      tags: [services]
+      summary: Create a medicine order request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MedicineOrderInput"
+      responses:
+        "201":
+          description: Order request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MedicineOrder"
+  /reports/adherence:
+    get:
+      operationId: getAdherenceReport
+      tags: [dashboard]
+      summary: Get adherence chart data
+      responses:
+        "200":
+          description: Report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdherenceReport"
+  /patients/me:
+    get:
+      operationId: getPatientProfile
+      tags: [profile]
+      summary: Get profile
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientProfile"
+    put:
+      operationId: updatePatientProfile
+      tags: [profile]
+      summary: Update profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientProfileInput"
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientProfile"
 components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
-        status:
-          type: string
-      required:
-        - status
-
+        status: { type: string }
+    Dashboard:
+      type: object
+      required: [patientName, greeting, stats, nextDose, recentActivity, adherence]
+      properties:
+        patientName: { type: string }
+        greeting: { type: string }
+        stats:
+          $ref: "#/components/schemas/DashboardStats"
+        nextDose:
+          anyOf:
+            - $ref: "#/components/schemas/Dose"
+            - type: "null"
+        recentActivity:
+          type: array
+          items: { $ref: "#/components/schemas/Activity" }
+        adherence:
+          type: array
+          items: { $ref: "#/components/schemas/AdherencePoint" }
+    DashboardStats:
+      type: object
+      required: [todayDoses, takenDoses, missedDoses, pendingDoses, adherence, unreadNotifications, riskLevel]
+      properties:
+        todayDoses: { type: integer }
+        takenDoses: { type: integer }
+        missedDoses: { type: integer }
+        pendingDoses: { type: integer }
+        adherence: { type: number }
+        unreadNotifications: { type: integer }
+        riskLevel: { type: string }
+    Medicine:
+      type: object
+      required: [id, name, dosage, type, scheduledTime, frequency, instructions, active]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        dosage: { type: string }
+        type: { type: string }
+        scheduledTime: { type: string }
+        frequency: { type: string }
+        startDate: { type: string }
+        endDate: { type: ["string", "null"] }
+        instructions: { type: string }
+        active: { type: boolean }
+    MedicineInput:
+      type: object
+      required: [name, dosage, type, scheduledTime, frequency, instructions]
+      properties:
+        name: { type: string, minLength: 1 }
+        dosage: { type: string, minLength: 1 }
+        type: { type: string }
+        scheduledTime: { type: string }
+        frequency: { type: string }
+        startDate: { type: string }
+        endDate: { type: ["string", "null"] }
+        instructions: { type: string }
+    Dose:
+      type: object
+      required: [id, medicineId, medicineName, dosage, scheduledTime, date, status]
+      properties:
+        id: { type: integer }
+        medicineId: { type: integer }
+        medicineName: { type: string }
+        dosage: { type: string }
+        scheduledTime: { type: string }
+        date: { type: string }
+        actualTakenTime: { type: ["string", "null"] }
+        status: { type: string }
+        instructions: { type: string }
+    DoseStatusInput:
+      type: object
+      required: [doseId, status]
+      properties:
+        doseId: { type: integer }
+        status: { type: string, enum: [taken, missed, pending, due] }
+    Activity:
+      type: object
+      required: [id, title, detail, timestamp, tone]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        detail: { type: string }
+        timestamp: { type: string }
+        tone: { type: string }
+    AdherencePoint:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: number }
+    Notification:
+      type: object
+      required: [id, title, message, type, createdAt, read]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        message: { type: string }
+        type: { type: string }
+        createdAt: { type: string }
+        read: { type: boolean }
+    ChatInput:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1 }
+    ChatMessage:
+      type: object
+      required: [id, role, message, createdAt]
+      properties:
+        id: { type: integer }
+        role: { type: string, enum: [user, assistant] }
+        message: { type: string }
+        createdAt: { type: string }
+    RiskAnalysis:
+      type: object
+      required: [adherence, riskLevel, probability, explanation, recommendation, totalDoses, takenDoses, missedDoses, pendingDoses]
+      properties:
+        adherence: { type: number }
+        riskLevel: { type: string }
+        probability: { type: number }
+        explanation: { type: string }
+        recommendation: { type: string }
+        totalDoses: { type: integer }
+        takenDoses: { type: integer }
+        missedDoses: { type: integer }
+        pendingDoses: { type: integer }
+    Caregiver:
+      type: object
+      required: [name, phone, email, relationship]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        relationship: { type: string }
+    CaregiverInput:
+      type: object
+      required: [name, phone, email, relationship]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        relationship: { type: string }
+    LocationInput:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude: { type: number }
+        longitude: { type: number }
+    Location:
+      type: object
+      required: [latitude, longitude, updatedAt]
+      properties:
+        latitude: { type: number }
+        longitude: { type: number }
+        address: { type: ["string", "null"] }
+        updatedAt: { type: string }
+    EmergencyEvent:
+      type: object
+      required: [id, status, createdAt, patientName, notificationStatus]
+      properties:
+        id: { type: integer }
+        status: { type: string }
+        createdAt: { type: string }
+        patientName: { type: string }
+        latitude: { type: ["number", "null"] }
+        longitude: { type: ["number", "null"] }
+        notificationStatus: { type: string }
+        resolutionStatus: { type: string }
+    Place:
+      type: object
+      required: [id, name, category, distance, address, phone, status]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        category: { type: string }
+        distance: { type: string }
+        address: { type: string }
+        phone: { type: string }
+        status: { type: string }
+        services:
+          type: array
+          items: { type: string }
+        integrationStatus: { type: string }
+    AppointmentInput:
+      type: object
+      required: [placeId, doctorOrDepartment, date, time, reason]
+      properties:
+        placeId: { type: integer }
+        doctorOrDepartment: { type: string }
+        date: { type: string }
+        time: { type: string }
+        reason: { type: string }
+    Appointment:
+      allOf:
+        - $ref: "#/components/schemas/AppointmentInput"
+        - type: object
+          required: [id, hospitalName, status, createdAt]
+          properties:
+            id: { type: integer }
+            hospitalName: { type: string }
+            status: { type: string }
+            createdAt: { type: string }
+    MedicineSearchResult:
+      type: object
+      required: [id, medicine, pharmacy, distance, availability, integrationStatus]
+      properties:
+        id: { type: integer }
+        medicine: { type: string }
+        pharmacy: { type: string }
+        distance: { type: string }
+        availability: { type: string }
+        price: { type: ["string", "null"] }
+        integrationStatus: { type: string }
+    MedicineOrderInput:
+      type: object
+      required: [medicine, quantity, pharmacy, deliveryAddress]
+      properties:
+        medicine: { type: string }
+        quantity: { type: integer, minimum: 1 }
+        pharmacy: { type: string }
+        deliveryAddress: { type: string }
+        prescriptionInfo: { type: ["string", "null"] }
+    MedicineOrder:
+      allOf:
+        - $ref: "#/components/schemas/MedicineOrderInput"
+        - type: object
+          required: [id, status, createdAt, integrationStatus]
+          properties:
+            id: { type: integer }
+            status: { type: string }
+            createdAt: { type: string }
+            integrationStatus: { type: string }
+    AdherenceReport:
+      type: object
+      required: [daily, weekly, monthly, byMedicine]
+      properties:
+        daily:
+          type: array
+          items: { $ref: "#/components/schemas/AdherencePoint" }
+        weekly:
+          type: array
+          items: { $ref: "#/components/schemas/AdherencePoint" }
+        monthly:
+          type: array
+          items: { $ref: "#/components/schemas/AdherencePoint" }
+        byMedicine:
+          type: array
+          items: { $ref: "#/components/schemas/AdherencePoint" }
+    PatientProfileInput:
+      type: object
+      required: [fullName, age, email, phone, address, doctorName, clinic, doctorPhone, doctorEmail, department]
+      properties:
+        fullName: { type: string }
+        age: { type: integer }
+        email: { type: string }
+        phone: { type: string }
+        address: { type: string }
+        doctorName: { type: string }
+        clinic: { type: string }
+        doctorPhone: { type: string }
+        doctorEmail: { type: string }
+        department: { type: string }
+    PatientProfile:
+      allOf:
+        - $ref: "#/components/schemas/PatientProfileInput"
+        - type: object
+          required: [id]
+          properties:
+            id: { type: integer }

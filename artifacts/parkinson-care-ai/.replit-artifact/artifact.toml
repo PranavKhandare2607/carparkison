@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Parkinson Care AI"
+description = "A calm, accessible healthcare companion for Parkinson's patients and caregivers, with medication tracking, adherence insights, emergency support, appointments, and pharmacy workflows."
+version = "1.0.0"
+id = "artifacts/parkinson-care-ai"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21472
+
+[services.development]
+run = "pnpm --filter @workspace/parkinson-care-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/parkinson-care-ai", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/parkinson-care-ai/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21472"
+BASE_PATH = "/"
