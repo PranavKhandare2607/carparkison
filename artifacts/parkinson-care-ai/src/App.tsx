@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Link, Route, Switch, useLocation } from 'wouter';
 import {
@@ -38,6 +38,107 @@ const apiFetch = async (path: string, init?: RequestInit) => {
   if (!response.ok) throw new Error(payload?.error || 'Unable to complete that request.');
   return payload;
 };
+type SpeechFeedback = { kind: 'queued' | 'speaking' | 'done' | 'error'; message: string };
+const spokenReminderIds = new Set<string>();
+
+function preferredSpeechVoice(voices: SpeechSynthesisVoice[]) {
+  if (!voices.length) return null;
+  const locale = navigator.language.toLowerCase();
+  const language = locale.split('-')[0];
+  return voices.find((voice) => voice.default && voice.lang.toLowerCase() === locale)
+    || voices.find((voice) => voice.lang.toLowerCase() === locale)
+    || voices.find((voice) => voice.lang.toLowerCase().startsWith(`${language}-`))
+    || voices.find((voice) => voice.default)
+    || voices[0];
+}
+
+function supportsSpeechSynthesis() {
+  return typeof window !== 'undefined'
+    && Boolean(window.speechSynthesis)
+    && typeof SpeechSynthesisUtterance !== 'undefined';
+}
+
+function speakReminder(message: string, reminderId: string, onFeedback: (feedback: SpeechFeedback) => void = () => {}) {
+  if (!supportsSpeechSynthesis()) {
+    onFeedback({ kind: 'error', message: 'Speech is unavailable in this browser. The text reminder is still shown.' });
+    return;
+  }
+  if (spokenReminderIds.has(reminderId)) {
+    onFeedback({ kind: 'queued', message: 'This reminder has already been queued.' });
+    return;
+  }
+
+  const synthesis = window.speechSynthesis;
+  spokenReminderIds.add(reminderId);
+  let started = false;
+  let voiceLoadTimeout: number | undefined;
+  let voicesListener: (() => void) | undefined;
+  const utterance = new SpeechSynthesisUtterance(message);
+  const cleanup = () => {
+    if (voiceLoadTimeout) window.clearTimeout(voiceLoadTimeout);
+    if (voicesListener) synthesis.removeEventListener('voiceschanged', voicesListener);
+    voiceLoadTimeout = undefined;
+    voicesListener = undefined;
+  };
+  const applyVoice = (voices: SpeechSynthesisVoice[]) => {
+    const voice = preferredSpeechVoice(voices);
+    if (!voice) return false;
+    utterance.voice = voice;
+    utterance.lang = voice.lang || navigator.language;
+    return true;
+  };
+
+  try {
+    if (!applyVoice(synthesis.getVoices())) {
+      voicesListener = () => {
+        if (!started && applyVoice(synthesis.getVoices())) {
+          if (voicesListener) synthesis.removeEventListener('voiceschanged', voicesListener);
+          voicesListener = undefined;
+        }
+      };
+      synthesis.addEventListener('voiceschanged', voicesListener);
+      voiceLoadTimeout = window.setTimeout(() => {
+        const voices = synthesis.getVoices();
+        if (!started && voices.length) applyVoice(voices);
+        if (!started && !synthesis.speaking && !synthesis.pending) {
+          cleanup();
+          onFeedback({
+            kind: 'error',
+            message: voices.length
+              ? 'The browser did not start speech. Your text reminder is still shown; try Test Voice again.'
+              : 'No browser voice is available. Your text reminder is still shown.',
+          });
+        }
+      }, 7000);
+    }
+
+    utterance.onstart = () => {
+      started = true;
+      cleanup();
+      onFeedback({ kind: 'speaking', message: 'Voice reminder is playing.' });
+    };
+    utterance.onend = () => {
+      cleanup();
+      onFeedback({ kind: 'done', message: 'Voice reminder finished.' });
+    };
+    utterance.onerror = (event) => {
+      cleanup();
+      const message = event.error === 'not-allowed'
+        ? 'The browser blocked speech. Click Test Voice to allow audio, then try again.'
+        : 'The browser could not play speech. The text reminder is still shown.';
+      onFeedback({ kind: 'error', message });
+    };
+    onFeedback({
+      kind: 'queued',
+      message: synthesis.speaking || synthesis.pending ? 'Voice reminder queued behind the current alert.' : 'Starting voice reminder…',
+    });
+    // SpeechSynthesis queues utterances, so a new reminder never interrupts one already playing.
+    synthesis.speak(utterance);
+  } catch {
+    cleanup();
+    onFeedback({ kind: 'error', message: 'The browser could not start speech. Your text reminder is still shown.' });
+  }
+}
 type PatientLocation = { latitude: number; longitude: number; accuracy?: number; updatedAt?: string };
 type LocationContextValue = { location: PatientLocation | null; loading: boolean; error: string; refresh: () => Promise<PatientLocation | null> };
 const LocationContext = createContext<LocationContextValue>({ location: null, loading: false, error: '', refresh: async () => null });
@@ -107,12 +208,13 @@ function MedicationReminderService() {
     const onVoiceChange = () => {
       voiceEnabled = user ? localStorage.getItem(`pcai-voice-enabled:${user.id}`) === 'true' : false;
     };
-    const announce = (medicine: any, scheduledTime: string) => {
+    const announce = (medicine: any, scheduledTime: string, reminderId: string) => {
       const message = `Hello! It is time for your scheduled ${medicine.name} ${medicine.dosage} dose, scheduled at ${scheduledTime}. Please follow your prescribed medication schedule.`;
-      setNotice({ id: `${medicine.id}-${Date.now()}`, message, medicine: medicine.name, dosage: medicine.dosage, scheduledTime });
-      if (voiceEnabled && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance(message));
+      setNotice({ id: reminderId, message, medicine: medicine.name, dosage: medicine.dosage, scheduledTime, voiceStatus: '' });
+      if (voiceEnabled) {
+        speakReminder(message, reminderId, (feedback) => {
+          setNotice((current: any) => current?.id === reminderId ? { ...current, voiceStatus: feedback.message } : current);
+        });
       }
       if ('Notification' in window && Notification.permission === 'granted') new Notification('Medication reminder', { body: `${medicine.name} ${medicine.dosage} · scheduled for ${scheduledTime}` });
     };
@@ -143,7 +245,7 @@ function MedicationReminderService() {
             const key = `pcai-reminder-fired:${user.id}:${today}:${medicine.id}:${dueMinute}`;
             if (localStorage.getItem(key)) continue;
             localStorage.setItem(key, 'true');
-            announce(medicine, medicine.scheduledTime);
+            announce(medicine, medicine.scheduledTime, key);
           }
         }
       } catch {
@@ -157,7 +259,7 @@ function MedicationReminderService() {
     return () => { stopped = true; if (timer) window.clearInterval(timer); window.removeEventListener('pcai-auth-changed', refreshSession); window.removeEventListener('pcai-voice-change', onVoiceChange); };
   }, []);
   if (!notice) return null;
-  return <div role="status" aria-live="polite" className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-xl rounded-2xl border border-[hsl(var(--primary)/.3)] bg-[hsl(var(--card))] p-4 shadow-xl sm:bottom-6"><div className="flex items-start gap-3"><Bell className="mt-1 shrink-0 text-[hsl(var(--primary))]" /><div className="flex-1"><b>Medication reminder</b><p className="mt-1 text-sm">{notice.message}</p></div><button onClick={() => setNotice(null)} className="rounded-lg p-2" aria-label="Dismiss reminder"><X size={16} /></button></div></div>;
+  return <div role="status" aria-live="polite" className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-xl rounded-2xl border border-[hsl(var(--primary)/.3)] bg-[hsl(var(--card))] p-4 shadow-xl sm:bottom-6"><div className="flex items-start gap-3"><Bell className="mt-1 shrink-0 text-[hsl(var(--primary))]" /><div className="flex-1"><b>Medication reminder</b><p className="mt-1 text-sm">{notice.message}</p>{notice.voiceStatus && <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{notice.voiceStatus}</p>}</div><button onClick={() => setNotice(null)} className="rounded-lg p-2" aria-label="Dismiss reminder"><X size={16} /></button></div></div>;
 }
 const items = [
   ['/dashboard', 'Overview', Activity], ['/medicines', 'Medicines', Pill], ['/reminders', 'Reminders', Bell], ['/history', 'History', Clock3],
@@ -223,7 +325,7 @@ function Dashboard() { const q = useGetDashboard(); const n = useListNotificatio
 
 function Medicines() { const q = useListMedicines(); const ds = useListDoseStatus(); const create = useCreateMedicine(); const update = useUpdateMedicine(); const del = useDeleteMedicine(); const qc = useQueryClient(); const [edit, setEdit] = useState<any>(null); const [form, setForm] = useState<any>({ name: '', dosage: '', type: 'Tablet', scheduledTime: '08:00', frequency: 'Daily', instructions: '' }); const save = (e: any) => { e.preventDefault(); const done = () => { setEdit(null); qc.invalidateQueries({ queryKey: getListMedicinesQueryKey() }); }; edit?.id ? update.mutate({ id: edit.id, data: form }, { onSuccess: done }) : create.mutate({ data: form }, { onSuccess: done }); }; const open = (m: any = null) => { setEdit(m || {}); setForm(m ? { ...m } : { name: '', dosage: '', type: 'Tablet', scheduledTime: '08:00', frequency: 'Daily', instructions: '' }); }; return <Shell><Title eyebrow="Your plan" title="Medicines" detail="Keep your medication plan current and easy to read." action={<button onClick={() => open()} className="flex min-h-12 items-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-4 text-sm font-bold text-white" data-testid="button-add-medicine"><Plus size={17} /> Add medicine</button>} />{edit && <form onSubmit={save} className="card mb-6 grid gap-4 p-6 sm:grid-cols-2"><h2 className="display text-xl font-extrabold sm:col-span-2">{edit.id ? 'Edit medicine' : 'Add a medicine'}</h2>{[['name', 'Medicine name'], ['dosage', 'Dose'], ['scheduledTime', 'Scheduled time'], ['frequency', 'Frequency']].map(([key, label]) => <label className="text-sm font-bold" key={key}>{label}<input required type={key === 'scheduledTime' ? 'time' : 'text'} value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} className="mt-2 min-h-12 w-full rounded-xl border border-[hsl(var(--input))] px-3" data-testid={`input-medicine-${key}`} /></label>)}<label className="text-sm font-bold sm:col-span-2">Instructions<textarea value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} className="mt-2 min-h-20 w-full rounded-xl border border-[hsl(var(--input))] p-3" data-testid="input-medicine-instructions" /></label><div className="flex gap-3 sm:col-span-2"><button className="min-h-12 flex-1 rounded-xl bg-[hsl(var(--primary))] font-bold text-white" data-testid="button-save-medicine">Save medicine</button><button type="button" onClick={() => setEdit(null)} className="min-h-12 rounded-xl border px-5 font-bold" data-testid="button-cancel-medicine">Cancel</button></div></form>}<Async q={q} empty={!q.data?.length}><div className="grid gap-4 lg:grid-cols-2">{q.data?.map((m: any) => <div className="card p-5" key={m.id} data-testid={`card-medicine-${m.id}`}><div className="flex justify-between"><div className="flex gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[hsl(var(--secondary))] text-[hsl(var(--primary))]"><Pill /></span><div><h2 className="display text-lg font-extrabold">{m.name}</h2><p className="text-sm text-[hsl(var(--muted-foreground))]">{m.dosage} · {m.type}</p></div></div><button onClick={() => open(m)} data-testid={`button-edit-medicine-${m.id}`}><Pencil size={17} /></button></div><div className="mt-5 grid grid-cols-2 rounded-xl bg-[hsl(var(--muted))] p-3 text-sm"><span><small className="block">Next scheduled</small><b>{m.scheduledTime}</b></span><span><small className="block">Frequency</small><b>{m.frequency}</b></span></div><div className="mt-4 flex justify-between text-xs text-[hsl(var(--muted-foreground))]"><span>{ds.data?.filter((x: any) => x.medicineId === m.id && x.status === 'taken').length || 0} taken today</span><button onClick={() => { if (window.confirm(`Remove ${m.name}?`)) del.mutate({ id: m.id }, { onSuccess: () => qc.invalidateQueries({ queryKey: getListMedicinesQueryKey() }) }); }} className="flex items-center gap-1 font-bold text-[hsl(var(--destructive))]" data-testid={`button-delete-medicine-${m.id}`}><Trash2 size={14} /> Remove</button></div></div>)}</div></Async></Shell>; }
 
-function History() { const q = useListDoseStatus(); const [f, setF] = useState('all'); const rows = q.data?.filter((x: any) => f === 'all' || x.status === f) || []; return <Shell><Title eyebrow="A useful record" title="Medication history" detail="Look back for patterns, not for perfection." action={<select value={f} onChange={e => setF(e.target.value)} className="min-h-11 rounded-xl border border-[hsl(var(--input))] px-3 text-sm font-bold" data-testid="select-history"><option value="all">All doses</option><option value="taken">Taken</option><option value="missed">Missed</option><option value="pending">Upcoming</option></select>} /><Async q={q} empty={!rows.length}><div className="card overflow-hidden">{rows.map((x: any) => <div className="grid gap-2 border-b border-[hsl(var(--border))] p-5 last:border-0 sm:grid-cols-[1.4fr_1fr_1fr_.7fr] sm:items-center"><div><b>{x.medicineName}</b><small className="block text-[hsl(var(--muted-foreground))]">{x.dosage}</small></div><span className="text-sm text-[hsl(var(--muted-foreground))]">{x.date}</span><span className="text-sm text-[hsl(var(--muted-foreground))]">{x.scheduledTime}</span><Badge tone={x.status === 'missed' ? 'red' : x.status === 'taken' ? 'teal' : 'amber'}>{x.status}</Badge></div>)}</div></Async></Shell>; }
+function History() { const q = useListDoseStatus(); const [f, setF] = useState('all'); const rows = q.data?.filter((x: any) => f === 'all' || x.status === f) || []; return <Shell><Title eyebrow="A useful record" title="Medication history" detail="Look back for patterns, not for perfection." action={<select value={f} onChange={e => setF(e.target.value)} className="min-h-11 rounded-xl border border-[hsl(var(--input))] px-3 text-sm font-bold" data-testid="select-history"><option value="all">All doses</option><option value="taken">Taken</option><option value="missed">Missed</option><option value="pending">Upcoming</option></select>} /><Async q={q} empty={!rows.length}><div className="card overflow-hidden">{rows.map((x: any) => <div key={x.id} className="grid gap-2 border-b border-[hsl(var(--border))] p-5 last:border-0 sm:grid-cols-[1.4fr_1fr_1fr_.7fr] sm:items-center"><div><b>{x.medicineName}</b><small className="block text-[hsl(var(--muted-foreground))]">{x.dosage}</small></div><span className="text-sm text-[hsl(var(--muted-foreground))]">{x.date}</span><span className="text-sm text-[hsl(var(--muted-foreground))]">{x.scheduledTime}</span><Badge tone={x.status === 'missed' ? 'red' : x.status === 'taken' ? 'teal' : 'amber'}>{x.status}</Badge></div>)}</div></Async></Shell>; }
 
 function Assistant() { const q = useGetChatHistory(); const send = useSendChatMessage(); const qc = useQueryClient(); const [text, setText] = useState(''); const prompts = ['What should I know about my next dose?', 'Help me prepare for a doctor visit', 'I feel unsteady today']; const submit = (message = text) => { if (!message.trim()) return; send.mutate({ data: { message } }, { onSuccess: () => { setText(''); qc.invalidateQueries({ queryKey: getGetChatHistoryQueryKey() }); } }); }; return <Shell><Title eyebrow="Here to help you think it through" title="Care assistant" detail="Ask about routines, medicines, or what to bring to your next appointment." /><div className="grid gap-6 lg:grid-cols-[1fr_300px]"><section className="card flex min-h-[560px] flex-col p-5 sm:p-7"><div className="flex items-center gap-3 border-b border-[hsl(var(--border))] pb-5"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[hsl(var(--secondary))] text-[hsl(var(--primary))]"><MessageCircle /></span><div><b className="display">Your care companion</b><small className="block text-[hsl(var(--muted-foreground))]">Clear answers, never a diagnosis</small></div></div><div className="flex-1 space-y-3 overflow-auto py-6">{q.data?.map((m: any) => <div className={`flex ${m.role === 'user' ? 'justify-end' : ''}`} key={m.id}><div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-6 ${m.role === 'user' ? 'bg-[hsl(var(--primary))] text-white' : 'bg-[hsl(var(--secondary))]'}`}>{m.message}</div></div>) || <div className="flex h-full flex-col items-center justify-center text-center"><HeartPulse className="text-[hsl(var(--primary))]" /><h3 className="display mt-4 text-xl font-extrabold">Start with a question</h3><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">I can help organize information to discuss with your care team.</p></div>}</div><div className="border-t border-[hsl(var(--border))] pt-4"><div className="flex gap-2 overflow-auto pb-3">{prompts.map((p, i) => <button onClick={() => submit(p)} className="shrink-0 rounded-full border px-3 py-2 text-xs font-bold" key={p} data-testid={`button-prompt-${i}`}>{p}</button>)}</div><div className="flex gap-2"><input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} className="min-h-12 flex-1 rounded-xl border border-[hsl(var(--input))] px-4" placeholder="Write a question..." data-testid="input-chat" /><button onClick={() => submit()} className="grid h-12 w-12 place-items-center rounded-xl bg-[hsl(var(--primary))] text-white" data-testid="button-send-chat"><Send size={17} /></button></div></div></section><aside className="card p-5"><Badge tone="amber">Safety first</Badge><p className="mt-4 text-sm leading-6 text-[hsl(var(--muted-foreground))]">This assistant shares general information, not medical advice. For urgent symptoms, call local emergency services.</p></aside></div></Shell>; }
 
@@ -311,7 +413,10 @@ function Settings() {
   const [voice, setVoice] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [voiceMessage, setVoiceMessage] = useState('');
+  const [testBusy, setTestBusy] = useState(false);
+  const testBusyRef = useRef(false);
   const [theme, setTheme] = useState('light');
+  const medicines = useListMedicines();
   const { location, error: locationError, loading: locationLoading, refresh } = usePatientLocation();
   useEffect(() => { authFetch('/me').then((user) => { setUserId(user.id); setVoice(localStorage.getItem(`pcai-voice-enabled:${user.id}`) === 'true'); }).catch(() => setUserId(null)); }, []);
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark'); }, [theme]);
@@ -322,24 +427,52 @@ function Settings() {
     if (!userId) return;
     localStorage.setItem(`pcai-voice-enabled:${userId}`, String(enabled));
     window.dispatchEvent(new Event('pcai-voice-change'));
+    if (enabled) {
+      speakReminder('Voice reminders are enabled. Use Test Voice to hear a sample reminder.', `voice-enabled:${userId}:${Date.now()}`, (feedback) => setVoiceMessage(feedback.message));
+    }
     if (enabled && 'Notification' in window && Notification.permission === 'default') {
-      const permission = await Notification.requestPermission();
-      if (permission === 'denied') setVoiceMessage('Browser notifications are blocked. The in-app reminder will still appear while this app is open.');
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'denied') setVoiceMessage('Browser notifications are blocked. The in-app reminder will still appear while this app is open.');
+      } catch {
+        setVoiceMessage('Browser notification permission could not be requested. In-app reminders will still appear.');
+      }
     }
   };
-  const testVoice = async () => {
+  const testVoice = () => {
     setVoiceMessage('');
-    if (!('speechSynthesis' in window)) { setVoiceMessage('Speech is unavailable in this browser. In-app reminders will still appear when the app is open.'); return; }
-    try {
-      const medicines = await apiFetch('/medicines');
-      const medicine = medicines.find((item: any) => item.active !== false);
-      const message = medicine ? `Hello! This is a test reminder for your scheduled ${medicine.name} ${medicine.dosage} dose, scheduled at ${medicine.scheduledTime}. Please follow your prescribed medication schedule.` : 'Hello! Your voice reminder test is working. Please follow your prescribed medication schedule.';
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance(message));
-      setVoiceMessage(medicine ? `Test reminder spoken for ${medicine.name} ${medicine.dosage} at ${medicine.scheduledTime}.` : 'Test reminder spoken. Add a saved medicine to personalize the reminder.');
-    } catch (error) { setVoiceMessage(error instanceof Error ? error.message : 'Could not read your saved medication schedule.'); }
+    if (!supportsSpeechSynthesis()) { setVoiceMessage('Speech is unavailable in this browser. In-app reminders will still appear when the app is open.'); return; }
+    if (medicines.isLoading) { setVoiceMessage('Loading your saved medication schedule. Please try Test Voice again in a moment.'); return; }
+    if (testBusyRef.current) return;
+
+    const medicine = medicines.data?.find((item: any) => item.active !== false);
+    const message = medicine
+      ? `Hello! This is a test reminder for your scheduled ${medicine.name} ${medicine.dosage} dose, scheduled at ${medicine.scheduledTime}. Please follow your prescribed medication schedule.`
+      : 'Hello! Your voice reminder test is working. Please follow your prescribed medication schedule.';
+    testBusyRef.current = true;
+    setTestBusy(true);
+    if (medicines.isError) setVoiceMessage('Could not load the saved schedule, so this will be a general voice test.');
+    speakReminder(message, `voice-test:${userId ?? 'patient'}:${Date.now()}`, (feedback) => {
+      if (feedback.kind === 'speaking') {
+        setVoiceMessage(medicine
+          ? `Speaking a test reminder for ${medicine.name}, ${medicine.dosage}, scheduled at ${medicine.scheduledTime}.`
+          : 'The voice test is playing. Add a saved medicine to personalize reminder speech.');
+      } else if (feedback.kind === 'done') {
+        setVoiceMessage(medicine
+          ? `Voice test finished for ${medicine.name}, ${medicine.dosage}, scheduled at ${medicine.scheduledTime}.`
+          : 'Voice test finished. Add a saved medicine to personalize reminder speech.');
+        testBusyRef.current = false;
+        setTestBusy(false);
+      } else {
+        setVoiceMessage(feedback.message);
+        if (feedback.kind === 'error') {
+          testBusyRef.current = false;
+          setTestBusy(false);
+        }
+      }
+    });
   };
-  return <Shell><Title eyebrow="Make it yours" title="Settings" detail="Reminder behavior, location permission, and display choices." /><div className="grid gap-6 lg:grid-cols-2"><section className="card p-6"><h2 className="display text-xl font-extrabold">Medication reminders</h2><Toggle title="Enable voice reminders" detail="Speak scheduled medication reminders while this app is open" value={voice} onClick={toggleVoice} test="toggle-voice" /><button onClick={testVoice} className="mt-4 min-h-12 rounded-xl bg-[hsl(var(--secondary))] px-4 text-sm font-bold text-[hsl(var(--primary))]" data-testid="button-test-voice"><Volume2 size={16} /> Test voice reminder</button>{voiceMessage && <p role="status" className="mt-3 rounded-xl bg-[hsl(var(--muted))] p-3 text-sm">{voiceMessage}</p>}<p className="mt-4 text-xs leading-5 text-[hsl(var(--muted-foreground))]">Voice reminders need the app open, a signed-in patient session, and an initial tap to enable audio. Alerts may be delayed when the browser is backgrounded. Browser speech does not run when the app is closed or the device is asleep.</p><button onClick={() => { if ('Notification' in window && Notification.permission === 'default') void Notification.requestPermission(); else setVoiceMessage('System notifications are unavailable or already configured in this browser.'); }} className="mt-3 text-sm font-bold text-[hsl(var(--primary))]" data-testid="button-enable-notifications">Enable browser notifications</button><p className="mt-2 text-xs leading-5 text-[hsl(var(--muted-foreground))]">Notifications can work in a background tab after permission is granted. Reliable reminders while closed require a configured push-notification service and service worker.</p></section><section className="card p-6"><h2 className="display text-xl font-extrabold">Privacy & display</h2><div className="mt-5 flex items-center justify-between rounded-xl bg-[hsl(var(--muted))] p-4"><span><b className="block text-sm">Theme</b><small>Choose what is easiest to read</small></span><select value={theme} onChange={e => setTheme(e.target.value)} className="min-h-10 rounded-lg border px-2" data-testid="select-theme"><option value="light">Light</option><option value="dark">Dark</option></select></div><div className="mt-5 rounded-xl bg-[hsl(var(--muted))] p-4"><b className="block text-sm">Current location</b><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{location ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : 'Not shared'}</p><button disabled={locationLoading} onClick={() => void refresh()} className="mt-3 min-h-10 rounded-xl bg-[hsl(var(--card))] px-3 text-sm font-bold disabled:opacity-60" data-testid="button-refresh-location">{locationLoading ? 'Finding location…' : 'Refresh my location'}</button>{locationError && <p role="alert" className="mt-2 text-xs text-[hsl(var(--destructive))]">{locationError}</p>}</div></section></div><section className="card mt-6 flex gap-3 p-6"><ShieldCheck className="text-[hsl(var(--primary))]" /><div><h2 className="display font-extrabold">Integration status</h2><p className="mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">SMS, WhatsApp, dispatch, hospital confirmation, pharmacy inventory, delivery, and medical records are not connected.</p><Badge tone="amber">Integration required</Badge></div></section></Shell>;
+  return <Shell><Title eyebrow="Make it yours" title="Settings" detail="Reminder behavior, location permission, and display choices." /><div className="grid gap-6 lg:grid-cols-2"><section className="card p-6"><h2 className="display text-xl font-extrabold">Medication reminders</h2><Toggle title="Enable Voice Reminders" detail="Speak scheduled medication reminders while this app is open" value={voice} onClick={toggleVoice} test="toggle-voice" /><button onClick={testVoice} disabled={testBusy || medicines.isLoading} className="mt-4 flex min-h-12 items-center gap-2 rounded-xl bg-[hsl(var(--secondary))] px-4 text-sm font-bold text-[hsl(var(--primary))] disabled:cursor-wait disabled:opacity-60" data-testid="button-test-voice"><Volume2 size={16} />{testBusy ? 'Speaking…' : medicines.isLoading ? 'Loading schedule…' : 'Test Voice'}</button>{voiceMessage && <p role="status" className="mt-3 rounded-xl bg-[hsl(var(--muted))] p-3 text-sm">{voiceMessage}</p>}<p className="mt-4 text-xs leading-5 text-[hsl(var(--muted-foreground))]">Turn on voice reminders, then tap Test Voice once to allow browser audio. Scheduled speech uses your saved medicine, dose, and local scheduled time. Keep this app open; browser speech cannot run when the app is closed or your device is asleep. Browser alerts may be delayed in a background tab.</p><button onClick={() => { if ('Notification' in window && Notification.permission === 'default') void Notification.requestPermission(); else setVoiceMessage('System notifications are unavailable or already configured in this browser.'); }} className="mt-3 text-sm font-bold text-[hsl(var(--primary))]" data-testid="button-enable-notifications">Enable browser notifications</button><p className="mt-2 text-xs leading-5 text-[hsl(var(--muted-foreground))]">Notifications can work in a background tab after permission is granted. Reliable reminders while closed require a configured push-notification service and service worker.</p></section><section className="card p-6"><h2 className="display text-xl font-extrabold">Privacy & display</h2><div className="mt-5 flex items-center justify-between rounded-xl bg-[hsl(var(--muted))] p-4"><span><b className="block text-sm">Theme</b><small>Choose what is easiest to read</small></span><select value={theme} onChange={e => setTheme(e.target.value)} className="min-h-10 rounded-lg border px-2" data-testid="select-theme"><option value="light">Light</option><option value="dark">Dark</option></select></div><div className="mt-5 rounded-xl bg-[hsl(var(--muted))] p-4"><b className="block text-sm">Current location</b><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{location ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : 'Not shared'}</p><button disabled={locationLoading} onClick={() => void refresh()} className="mt-3 min-h-10 rounded-xl bg-[hsl(var(--card))] px-3 text-sm font-bold disabled:opacity-60" data-testid="button-refresh-location">{locationLoading ? 'Finding location…' : 'Refresh my location'}</button>{locationError && <p role="alert" className="mt-2 text-xs text-[hsl(var(--destructive))]">{locationError}</p>}</div></section></div><section className="card mt-6 flex gap-3 p-6"><ShieldCheck className="text-[hsl(var(--primary))]" /><div><h2 className="display font-extrabold">Integration status</h2><p className="mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">SMS, WhatsApp, dispatch, hospital confirmation, pharmacy inventory, delivery, and medical records are not connected.</p><Badge tone="amber">Integration required</Badge></div></section></Shell>;
 }
 function Toggle({ title, detail, value, onClick, test }: { title: string; detail: string; value: boolean; onClick: () => void; test: string }) { return <div className="mt-5 flex items-center justify-between gap-4 rounded-xl bg-[hsl(var(--muted))] p-4"><span><b className="block text-sm">{title}</b><small>{detail}</small></span><button onClick={onClick} className={`relative h-7 w-12 rounded-full ${value ? 'bg-[hsl(var(--primary))]' : 'bg-[hsl(var(--border))]'}`} data-testid={test}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white ${value ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>; }
 function CaregiverShell({ children }: { children: ReactNode }) {

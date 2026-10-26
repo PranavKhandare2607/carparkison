@@ -79,4 +79,36 @@ a { color: inherit; text-decoration: none; }
 .fade-up-2 { animation: fade-up .45s .08s ease both; }
 @keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .focus-ring:focus-visible { outline: 3px solid hsl(var(--accent)); outline-offset: 3px; }
+.shell-bg > aside:first-child,
+.shell-bg > aside:first-child > div > .mt-10.flex-1 {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / .48) transparent;
+  overscroll-behavior: contain;
+}
+.shell-bg > aside:first-child {
+  overflow-y: auto;
+}
+.shell-bg > aside:first-child > div {
+  min-height: 100%;
+}
+.shell-bg > aside:first-child > div > .mt-10.flex-1 {
+  min-height: 0;
+  overflow-y: auto;
+}
+.shell-bg > aside:first-child::-webkit-scrollbar,
+.shell-bg > aside:first-child > div > .mt-10.flex-1::-webkit-scrollbar {
+  width: 8px;
+}
+.shell-bg > aside:first-child::-webkit-scrollbar-thumb,
+.shell-bg > aside:first-child > div > .mt-10.flex-1::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: hsl(var(--primary) / .4);
+  background-clip: content-box;
+}
+.shell-bg > aside:first-child::-webkit-scrollbar-thumb:hover,
+.shell-bg > aside:first-child > div > .mt-10.flex-1::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / .7);
+  background-clip: content-box;
+}
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; scroll-behavior: auto !important; } }
