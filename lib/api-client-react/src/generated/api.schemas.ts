@@ -155,14 +155,44 @@ export interface CaregiverInput {
 export interface LocationInput {
   latitude: number;
   longitude: number;
+  /** @minimum 0 */
+  accuracy?: number;
 }
 
-export interface Location {
+/**
+ * @nullable
+ */
+export type Location = {
   latitude: number;
   longitude: number;
   /** @nullable */
+  accuracy?: number | null;
+  /** @nullable */
   address?: string | null;
   updatedAt: string;
+} | null;
+
+export interface NearbyPlace {
+  id: number;
+  name: string;
+  category: string;
+  address: string;
+  distanceKm: number;
+  distance: string;
+  latitude: number;
+  longitude: number;
+  directionsUrl: string;
+  provider: string;
+  integrationStatus: string;
+}
+
+export interface NearbySearchResponse {
+  provider: string;
+  results: NearbyPlace[];
+  offset: number;
+  /** @nullable */
+  nextOffset: number | null;
+  totalReturned: number;
 }
 
 export interface EmergencyEvent {
@@ -256,6 +286,32 @@ export interface PatientProfileInput {
 export type PatientProfile = PatientProfileInput & {
   id: number;
 };
+
+export type SearchNearbyPlacesParams = {
+/**
+ * @minimum -90
+ * @maximum 90
+ */
+latitude: number;
+/**
+ * @minimum -180
+ * @maximum 180
+ */
+longitude: number;
+category: SearchNearbyPlacesCategory;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type SearchNearbyPlacesCategory = typeof SearchNearbyPlacesCategory[keyof typeof SearchNearbyPlacesCategory];
+
+
+export const SearchNearbyPlacesCategory = {
+  hospital: 'hospital',
+  pharmacy: 'pharmacy',
+} as const;
 
 export type SearchMedicinesParams = {
 query?: string;

@@ -39,12 +39,14 @@ import type {
   MedicineOrder,
   MedicineOrderInput,
   MedicineSearchResult,
+  NearbySearchResponse,
   Notification,
   PatientProfile,
   PatientProfileInput,
   Place,
   RiskAnalysis,
-  SearchMedicinesParams
+  SearchMedicinesParams,
+  SearchNearbyPlacesParams
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1529,9 +1531,9 @@ export const getGetCurrentLocationUrl = () => {
 /**
  * @summary Get saved location
  */
-export const getCurrentLocation = async ( options?: Parameters<typeof customFetch>[1]): Promise<Location> => {
+export const getCurrentLocation = async ( options?: Parameters<typeof customFetch>[1]): Promise<Location | null> => {
 
-  return customFetch<Location>(getGetCurrentLocationUrl(),
+  return customFetch<Location | null>(getGetCurrentLocationUrl(),
   {
     ...options,
     method: 'GET'
@@ -1606,7 +1608,7 @@ export const getUpdateLocationUrl = () => {
 /**
  * @summary Save current location
  */
-export const updateLocation = async (locationInput: LocationInput, options?: Parameters<typeof customFetch>[1]): Promise<Location> => {
+export const updateLocation = async (locationInput: LocationInput, options?: Parameters<typeof customFetch>[1]): Promise<Location | null> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -1622,7 +1624,7 @@ export const updateLocation = async (locationInput: LocationInput, options?: Par
     }
     return headers;
   };
-return customFetch<Location>(getUpdateLocationUrl(),
+return customFetch<Location | null>(getUpdateLocationUrl(),
   {
     ...options,
     method: 'POST',
@@ -1825,6 +1827,90 @@ export function useListPharmacies<TData = Awaited<ReturnType<typeof listPharmaci
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListPharmaciesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSearchNearbyPlacesUrl = (params: SearchNearbyPlacesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/nearby/search?${stringifiedParams}` : `/api/nearby/search`
+}
+
+/**
+ * @summary Search real nearby hospitals or pharmacies
+ */
+export const searchNearbyPlaces = async (params: SearchNearbyPlacesParams, options?: Parameters<typeof customFetch>[1]): Promise<NearbySearchResponse> => {
+
+  return customFetch<NearbySearchResponse>(getSearchNearbyPlacesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchNearbyPlacesQueryKey = (params?: SearchNearbyPlacesParams,) => {
+    return [
+    `/api/nearby/search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchNearbyPlacesQueryOptions = <TData = Awaited<ReturnType<typeof searchNearbyPlaces>>, TError = ErrorType<void>>(params: SearchNearbyPlacesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchNearbyPlaces>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchNearbyPlacesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchNearbyPlaces>>> = ({ signal }) => searchNearbyPlaces(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchNearbyPlaces>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchNearbyPlacesQueryResult = NonNullable<Awaited<ReturnType<typeof searchNearbyPlaces>>>
+export type SearchNearbyPlacesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Search real nearby hospitals or pharmacies
+ */
+
+export function useSearchNearbyPlaces<TData = Awaited<ReturnType<typeof searchNearbyPlaces>>, TError = ErrorType<void>>(
+ params: SearchNearbyPlacesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchNearbyPlaces>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchNearbyPlacesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -9,4 +9,6 @@
 export interface LocationInput {
   latitude: number;
   longitude: number;
+  /** @minimum 0 */
+  accuracy?: number;
 }

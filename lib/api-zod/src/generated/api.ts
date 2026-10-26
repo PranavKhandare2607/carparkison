@@ -299,9 +299,14 @@ export const UpdateCaregiverResponse = zod.object({
 /**
  * @summary Create an emergency SOS event
  */
+export const activateEmergencyBodyAccuracyMin = 0;
+
+
+
 export const ActivateEmergencyBody = zod.object({
   "latitude": zod.number(),
-  "longitude": zod.number()
+  "longitude": zod.number(),
+  "accuracy": zod.number().min(activateEmergencyBodyAccuracyMin).optional()
 })
 
 export const ActivateEmergencyResponse = zod.object({
@@ -357,25 +362,32 @@ export const ListEmergencyHistoryResponse = zod.array(ListEmergencyHistoryRespon
 export const GetCurrentLocationResponse = zod.object({
   "latitude": zod.number(),
   "longitude": zod.number(),
+  "accuracy": zod.number().nullish(),
   "address": zod.string().nullish(),
   "updatedAt": zod.string()
-})
+}).nullable()
 
 
 /**
  * @summary Save current location
  */
+export const updateLocationBodyAccuracyMin = 0;
+
+
+
 export const UpdateLocationBody = zod.object({
   "latitude": zod.number(),
-  "longitude": zod.number()
+  "longitude": zod.number(),
+  "accuracy": zod.number().min(updateLocationBodyAccuracyMin).optional()
 })
 
 export const UpdateLocationResponse = zod.object({
   "latitude": zod.number(),
   "longitude": zod.number(),
+  "accuracy": zod.number().nullish(),
   "address": zod.string().nullish(),
   "updatedAt": zod.string()
-})
+}).nullable()
 
 
 /**
@@ -410,6 +422,48 @@ export const ListPharmaciesResponseItem = zod.object({
   "integrationStatus": zod.string().optional()
 })
 export const ListPharmaciesResponse = zod.array(ListPharmaciesResponseItem)
+
+
+/**
+ * @summary Search real nearby hospitals or pharmacies
+ */
+export const searchNearbyPlacesQueryLatitudeMin = -90;
+export const searchNearbyPlacesQueryLatitudeMax = 90;
+
+export const searchNearbyPlacesQueryLongitudeMin = -180;
+export const searchNearbyPlacesQueryLongitudeMax = 180;
+
+export const searchNearbyPlacesQueryOffsetDefault = 0;
+export const searchNearbyPlacesQueryOffsetMin = 0;
+
+
+
+export const SearchNearbyPlacesQueryParams = zod.object({
+  "latitude": zod.coerce.number().min(searchNearbyPlacesQueryLatitudeMin).max(searchNearbyPlacesQueryLatitudeMax),
+  "longitude": zod.coerce.number().min(searchNearbyPlacesQueryLongitudeMin).max(searchNearbyPlacesQueryLongitudeMax),
+  "category": zod.enum(['hospital', 'pharmacy']),
+  "offset": zod.coerce.number().int().min(searchNearbyPlacesQueryOffsetMin).default(searchNearbyPlacesQueryOffsetDefault)
+})
+
+export const SearchNearbyPlacesResponse = zod.object({
+  "provider": zod.string(),
+  "results": zod.array(zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "category": zod.string(),
+  "address": zod.string(),
+  "distanceKm": zod.number(),
+  "distance": zod.string(),
+  "latitude": zod.number(),
+  "longitude": zod.number(),
+  "directionsUrl": zod.string().url(),
+  "provider": zod.string(),
+  "integrationStatus": zod.string()
+})),
+  "offset": zod.number().int(),
+  "nextOffset": zod.number().int().nullable(),
+  "totalReturned": zod.number().int()
+})
 
 
 /**

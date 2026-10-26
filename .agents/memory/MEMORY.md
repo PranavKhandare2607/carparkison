@@ -1,0 +1,1 @@
+- [Nominatim pagination](nearby-search-pagination.md) — Nominatim search has no offset paging; cache bounded results briefly and page them locally to avoid duplicate places.

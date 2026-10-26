@@ -6,10 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Location {
+/**
+ * @nullable
+ */
+export type Location = {
   latitude: number;
   longitude: number;
   /** @nullable */
+  accuracy?: number | null;
+  /** @nullable */
   address?: string | null;
   updatedAt: string;
-}
+} | null;

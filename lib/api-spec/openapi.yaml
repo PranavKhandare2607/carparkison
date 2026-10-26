@@ -335,6 +335,41 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Place"
+  /nearby/search:
+    get:
+      operationId: searchNearbyPlaces
+      tags: [services]
+      summary: Search real nearby hospitals or pharmacies
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema: { type: number, minimum: -90, maximum: 90 }
+        - name: longitude
+          in: query
+          required: true
+          schema: { type: number, minimum: -180, maximum: 180 }
+        - name: category
+          in: query
+          required: true
+          schema: { type: string, enum: [hospital, pharmacy] }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: Nearby OpenStreetMap results, sorted by estimated distance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NearbySearchResponse"
+        "400":
+          description: Invalid search parameters
+        "403":
+          description: Search coordinates do not match the patient's saved location
+        "502":
+          description: Nearby place provider unavailable
   /nearby/ambulances:
     get:
       operationId: listAmbulances
@@ -633,14 +668,43 @@ components:
       properties:
         latitude: { type: number }
         longitude: { type: number }
+        accuracy: { type: number, minimum: 0 }
     Location:
-      type: object
+      type: [object, "null"]
       required: [latitude, longitude, updatedAt]
       properties:
         latitude: { type: number }
         longitude: { type: number }
+        accuracy: { type: ["number", "null"] }
         address: { type: ["string", "null"] }
         updatedAt: { type: string }
+    NearbyPlace:
+      type: object
+      required: [id, name, category, address, distanceKm, distance, latitude, longitude, directionsUrl, provider, integrationStatus]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        category: { type: string }
+        address: { type: string }
+        distanceKm: { type: number }
+        distance: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        directionsUrl: { type: string, format: uri }
+        provider: { type: string }
+        integrationStatus: { type: string }
+    NearbySearchResponse:
+      type: object
+      required: [provider, results, offset, nextOffset, totalReturned]
+      properties:
+        provider: { type: string }
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/NearbyPlace"
+        offset: { type: integer }
+        nextOffset: { type: ["integer", "null"] }
+        totalReturned: { type: integer }
     EmergencyEvent:
       type: object
       required: [id, status, createdAt, patientName, notificationStatus]
