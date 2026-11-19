@@ -1,0 +1,770 @@
+The current application is functional as a dashboard prototype, but it does NOT yet look like a complete professional healthcare application.
+
+I want you to redesign and restructure the existing Parkinson Care AI application into a proper complete web application.
+
+IMPORTANT:
+- Do NOT create a new project.
+- Do NOT delete existing working backend functionality.
+- Do NOT remove existing features.
+- Keep the existing database and APIs where they are working.
+- Improve the architecture, navigation, authentication flow and UI.
+- The application must feel like a real healthcare product, not a dashboard demo.
+
+==================================================
+1. PROPER APPLICATION FLOW
+==================================================
+
+The application must NOT open directly to the patient dashboard.
+
+The correct flow must be:
+
+Landing Page
+      ↓
+Login / Register
+      ↓
+Patient Dashboard
+      ↓
+All patient features
+
+When a user visits the root URL, show the Landing Page first.
+
+Do NOT automatically show:
+"Hello, Asha Rao"
+
+unless the user has successfully logged in.
+
+==================================================
+2. LANDING PAGE
+==================================================
+
+Create a professional landing page for:
+
+PARKINSON CARE AI
+
+Tagline:
+
+"Smart Medication, Emergency & Healthcare Assistance"
+
+Create a beautiful hero section.
+
+Show:
+
+Parkinson Care AI
+
+"Helping Parkinson's patients manage medication, stay connected with caregivers, and access emergency and healthcare support."
+
+Buttons:
+
+GET STARTED
+LOGIN
+REGISTER
+
+Add a professional healthcare illustration/visual.
+
+Add sections:
+
+Features
+How It Works
+For Patients
+For Caregivers
+Emergency Support
+Medication Assistance
+
+Feature cards:
+
+💊 Medication Reminders
+🤖 AI Assistant
+🔔 Smart Notifications
+📊 Medication Adherence
+🚨 Emergency SOS
+📍 Location Sharing
+🏥 Nearby Hospitals
+💊 Nearby Pharmacies
+
+Add a professional footer.
+
+==================================================
+3. PATIENT LOGIN PAGE
+==================================================
+
+Create a proper dedicated Login page.
+
+URL:
+
+/login
+
+Design:
+
+Centered professional login card.
+
+Title:
+
+"Welcome Back"
+
+Subtitle:
+
+"Sign in to your Parkinson Care AI account"
+
+Fields:
+
+Email
+Password
+
+Buttons:
+
+LOGIN
+
+Also provide:
+
+Forgot Password?
+Don't have an account? Register
+
+Add:
+
+"Continue as Demo Patient"
+
+only if DEMO MODE is enabled.
+
+Do not automatically log the user in.
+
+After successful login:
+
+→ redirect to /dashboard
+
+==================================================
+4. PATIENT REGISTRATION PAGE
+==================================================
+
+Create a dedicated Register page.
+
+URL:
+
+/register
+
+Title:
+
+"Create Your Account"
+
+Fields:
+
+Full Name
+Email
+Password
+Confirm Password
+Age
+Phone Number
+Address
+
+Emergency information:
+
+Caregiver Name
+Caregiver Phone
+Emergency Contact Name
+Emergency Contact Phone
+Relationship
+
+Button:
+
+CREATE ACCOUNT
+
+After successful registration:
+
+→ redirect to Login
+
+Show a clear success message.
+
+==================================================
+5. AUTHENTICATION
+==================================================
+
+Implement real authentication.
+
+Unauthenticated users should NOT be able to access:
+
+/dashboard
+/medicines
+/reminders
+/history
+/chat
+/risk
+/caregiver
+/emergency
+/hospitals
+/pharmacies
+/appointments
+/orders
+/reports
+/profile
+/settings
+
+If an unauthenticated user tries to access these pages:
+
+redirect to:
+
+/login
+
+After logout:
+
+redirect to:
+
+/
+
+Do not show patient information before login.
+
+==================================================
+6. PROPER PATIENT DASHBOARD
+==================================================
+
+After login, show:
+
+"Good Morning, [Patient Name]"
+
+Do not use hard-coded "Asha Rao".
+
+Use the logged-in patient's actual name from the database.
+
+Dashboard should contain:
+
+Today's Medicines
+Next Medicine
+Taken Doses
+Missed Doses
+Pending Doses
+Adherence
+Risk Level
+Notifications
+
+Also show:
+
+Upcoming Medicines
+Recent Activity
+AI Assistant shortcut
+Emergency SOS
+Nearby Hospitals
+Nearby Pharmacies
+
+==================================================
+7. PROFESSIONAL APPLICATION LAYOUT
+==================================================
+
+Create a proper application layout.
+
+Desktop:
+
+Left sidebar
+Main content
+Top header
+
+Sidebar:
+
+Parkinson Care AI logo
+
+Overview
+Medicines
+Reminders
+History
+AI Assistant
+Risk Analysis
+Caregiver
+Emergency SOS
+Hospitals
+Pharmacies
+Appointments
+Medicine Orders
+Reports
+
+Then:
+
+Profile
+Settings
+Logout
+
+Top header:
+
+Page title
+Notification icon
+Patient profile/avatar
+Patient name
+
+Mobile:
+
+Use a hamburger menu or bottom navigation.
+
+==================================================
+8. MAKE THE DESIGN LOOK LIKE A REAL PRODUCT
+==================================================
+
+The current design looks like a prototype.
+
+Redesign it professionally.
+
+Use:
+
+- Consistent typography
+- Consistent spacing
+- Professional cards
+- Proper icons
+- Modern buttons
+- Subtle shadows
+- Clean navigation
+- Responsive layout
+- Good visual hierarchy
+- Proper empty states
+- Loading states
+- Error states
+
+Do not make every section look like a huge white rectangular card.
+
+Use different layouts such as:
+
+- Cards
+- Lists
+- Tables
+- Charts
+- Timeline
+- Status badges
+- Sections
+
+Keep the design clean and healthcare-focused.
+
+==================================================
+9. PATIENT PROFILE
+==================================================
+
+Top-right profile should open a profile menu.
+
+Show:
+
+Patient name
+Email
+Profile
+Settings
+Logout
+
+Profile page should show:
+
+Name
+Age
+Email
+Phone
+Address
+Caregiver
+Emergency Contact
+Doctor
+
+Allow editing.
+
+==================================================
+10. MEDICINES PAGE
+==================================================
+
+Create a proper medicines management page.
+
+Header:
+
+"My Medicines"
+
+Button:
+
++ Add Medicine
+
+Medicine cards/table:
+
+Medicine
+Dosage
+Time
+Frequency
+Instructions
+Status
+
+Actions:
+
+Edit
+Delete
+
+Use a proper modal/form for adding medicine.
+
+==================================================
+11. REMINDERS PAGE
+==================================================
+
+Create:
+
+"Today's Medication"
+
+Show medicines in chronological order.
+
+Example:
+
+08:00 AM
+Levodopa
+100 mg
+
+[TAKEN] [MISSED]
+
+Use clear status indicators.
+
+==================================================
+12. AI ASSISTANT PAGE
+==================================================
+
+Create a proper full-page AI assistant.
+
+Header:
+
+"Parkinson Care AI Assistant"
+
+Subtitle:
+
+"Ask about your medicines, reminders and medication history."
+
+Chat interface:
+
+User message
+AI response
+
+Input:
+
+"Ask something..."
+
+Send button.
+
+Suggested questions:
+
+"What medicines do I have today?"
+"When is my next medicine?"
+"Did I miss any medicine?"
+"Show my adherence."
+
+==================================================
+13. EMERGENCY SOS PAGE
+==================================================
+
+Create a dedicated Emergency page.
+
+URL:
+
+/emergency
+
+At the top:
+
+🚨 Emergency Assistance
+
+Large SOS button:
+
+SOS
+
+Under it:
+
+"Press only when you need emergency assistance."
+
+When pressed:
+
+Show confirmation modal.
+
+After confirmation:
+
+Get GPS location.
+
+Show:
+
+SOS Activated
+
+Location detected
+
+Caregiver alert created
+
+Emergency contacts notified
+
+Then show:
+
+Nearby Hospitals
+Nearby Ambulances
+Emergency Contacts
+
+Buttons:
+
+CALL
+DIRECTIONS
+VIEW LOCATION
+
+Make this page visually different from normal pages because it is an emergency feature.
+
+==================================================
+14. HOSPITALS PAGE
+==================================================
+
+Create:
+
+"Nearby Hospitals"
+
+Show hospital cards.
+
+Each card:
+
+Hospital name
+Distance
+Address
+Phone
+
+Buttons:
+
+Call
+Directions
+View Details
+Book Appointment
+
+==================================================
+15. PHARMACY PAGE
+==================================================
+
+Create:
+
+"Nearby Pharmacies"
+
+Show:
+
+Pharmacy name
+Distance
+Address
+Phone
+Opening status
+
+Buttons:
+
+Call
+Directions
+View Details
+
+Add:
+
+Search Medicine
+
+==================================================
+16. APPOINTMENTS
+==================================================
+
+Create:
+
+"My Appointments"
+
+Show:
+
+Upcoming
+Past
+Cancelled
+
+Appointment card:
+
+Hospital
+Doctor/Department
+Date
+Time
+Status
+
+==================================================
+17. MEDICINE ORDERS
+==================================================
+
+Create:
+
+"Medicine Orders"
+
+Show:
+
+Medicine
+Pharmacy
+Quantity
+Date
+Order status
+
+Use status badges:
+
+Requested
+Processing
+Confirmed
+Out for Delivery
+Delivered
+Cancelled
+
+==================================================
+18. CAREGIVER
+==================================================
+
+Create:
+
+"Caregiver"
+
+Show:
+
+Caregiver information
+
+Patient medication status
+
+Taken
+Missed
+Adherence
+
+Emergency alerts
+
+==================================================
+19. REPORTS
+==================================================
+
+Create a professional reports page.
+
+Show:
+
+Medication adherence chart
+Taken vs missed doses
+Weekly adherence
+Monthly adherence
+Medicine-wise adherence
+
+Add:
+
+Download Report
+
+==================================================
+20. SETTINGS
+==================================================
+
+Create proper settings page.
+
+Sections:
+
+Notifications
+Voice Reminders
+Reminder Sound
+Dark/Light Mode
+Emergency Contacts
+Account
+Privacy
+
+Use proper switches/toggles.
+
+==================================================
+21. RESPONSIVE DESIGN
+==================================================
+
+Test the complete application at:
+
+Desktop
+Laptop
+Tablet
+Mobile
+
+Do not allow:
+
+Horizontal scrolling
+Broken cards
+Overlapping buttons
+Text going outside containers
+Broken navigation
+
+Mobile dashboard must be redesigned appropriately rather than simply shrinking the desktop layout.
+
+==================================================
+22. LOADING AND EMPTY STATES
+==================================================
+
+Every page should have proper states.
+
+Example:
+
+No medicines:
+
+"No medicines added yet."
+
+Button:
+
++ Add Medicine
+
+Loading:
+
+"Loading your medications..."
+
+Error:
+
+"Unable to load your medications. Please try again."
+
+==================================================
+23. REMOVE PROTOTYPE FEEL
+==================================================
+
+The current application has a DEMO MODE indicator and a prototype-style dashboard.
+
+Keep DEMO MODE internally if required for testing, but make the application visually professional.
+
+Do not make "DEMO MODE" the main focus of the application.
+
+Do not show fake patient data after real login.
+
+Do not hard-code:
+
+Asha Rao
+2 doses
+67%
+etc.
+
+All dashboard values should come from the logged-in patient's database.
+
+==================================================
+24. SECURITY
+==================================================
+
+Ensure:
+
+- Login is required.
+- Patient data is protected.
+- Logout works.
+- Patient-specific data is loaded from the database.
+- Unauthorized users cannot access patient pages.
+- API routes are protected.
+- No passwords are displayed.
+- No secret API keys are exposed.
+
+==================================================
+25. FINAL TEST
+==================================================
+
+After implementing this redesign:
+
+Test this complete flow:
+
+1. Open application root URL
+2. Landing page appears
+3. Click Register
+4. Create patient
+5. Redirect to Login
+6. Login
+7. Redirect to Dashboard
+8. Dashboard shows logged-in patient's name
+9. Add medicine
+10. Medicine appears in dashboard
+11. Create reminder
+12. Mark Taken/Missed
+13. Check history
+14. Open AI Assistant
+15. Open Risk Analysis
+16. Open Caregiver
+17. Open Emergency SOS
+18. Test location
+19. Open Hospitals
+20. Open Pharmacies
+21. Open Appointments
+22. Open Medicine Orders
+23. Open Reports
+24. Open Profile
+25. Open Settings
+26. Logout
+27. Verify that dashboard is no longer accessible
+28. Verify redirect to Login
+
+Fix all errors found.
+
+Do not just tell me what needs to be changed.
+
+Actually implement the changes and run the application.
+
+At the end, give me a short summary of what you changed.

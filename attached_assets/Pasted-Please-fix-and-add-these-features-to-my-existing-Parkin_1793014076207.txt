@@ -1,0 +1,36 @@
+Please fix and add these features to my existing Parkinson Care AI project. Do not create a new project or remove any existing features.
+
+### 1. Fix spoken medication reminders
+Currently, the voice alert messages are not playing at the scheduled medication times. Find and fix the actual cause.
+
+- When a medication reminder becomes due, speak a message using the browser's SpeechSynthesis API.
+- Example: "Hello! It is time for your scheduled Levodopa 100 mg dose. Please follow your prescribed medication schedule."
+- Read the actual medicine name, dosage, and scheduled time from the logged-in patient's saved medication record. Do not hard-code Levodopa.
+- Make sure the reminder scheduler runs correctly and checks the correct patient's medication schedule.
+- Avoid duplicate alerts for the same dose.
+- Add a Test Voice button, Enable Voice Reminders setting, and a visible reminder notification.
+- Request notification permission when appropriate and provide a fallback if speech or notifications are unavailable.
+- Handle browser autoplay restrictions by explaining that the user must interact with the page to enable audio.
+- If the app is open, reminders should work at the correct scheduled time even when the user is viewing another page within the app.
+- Do not claim that browser voice alerts work when the app is closed or the device is asleep. Explain any background-reminder limitations and provide a suitable notification solution if supported.
+- Never recommend changing a prescribed dose.
+
+### 2. Use the patient's actual current location
+- Use the browser Geolocation API to obtain the patient's actual latitude and longitude after explicit permission.
+- Do not hard-code Pune, Mumbai, or any other coordinates.
+- Display the current location on a map and provide a Refresh My Location button.
+- Show a clear message if location access is denied, unavailable, or inaccurate.
+- Use the current coordinates to search for nearby hospitals and pharmacies using a real location-data service.
+- Show as many relevant nearby results as the provider can return, with pagination or a Load More button when available.
+- Display place name, full address, distance from the patient, and directions link.
+- Allow filtering between Hospitals and Pharmacies and sorting by distance.
+- Show loading indicators, handle API errors, and clearly label any demo data.
+- Never present fake or hard-coded places as actual nearby results.
+- Do not request continuous location tracking unless the feature genuinely requires it.
+
+### 3. Test and report
+After implementation, test the voice reminder using a test medication scheduled a few minutes ahead, and verify that the correct medicine name and time are spoken.
+Test location permission, actual coordinates, nearby search results, distances, and directions.
+Inspect the backend scheduler, frontend audio logic, browser console, API responses, and database as needed to find the real bugs.
+Keep all existing registration, login, medication management, caregiver, membership, and other features working.
+At the end, report what was actually fixed, what was tested successfully, and what still requires configuration or API keys.

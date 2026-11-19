@@ -1,0 +1,17 @@
+.git
+.gitignore
+node_modules
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+artifacts/mockup-sandbox
+attached_assets
+.config
+.agents
+.conversation
+*.log
+.env
+.env.*
+Dockerfile
+docker-compose.yml
+.dockerignore

@@ -1,0 +1,255 @@
+IMPORTANT: IMPLEMENT A PROPER PATIENT-CAREGIVER CONNECTION SYSTEM.
+
+Do NOT allow any caregiver to see patient information simply because they know the patient's name or phone number.
+
+The caregiver must only see a patient's information AFTER the patient explicitly adds/invites that caregiver.
+
+==================================================
+PATIENT → CAREGIVER CONNECTION
+==================================================
+
+Patient dashboard should have:
+
+Caregiver
+→ Add Caregiver
+
+Patient can enter:
+
+- Caregiver full name
+- Caregiver email
+- Caregiver phone number
+- Relationship
+  (Parent / Spouse / Son / Daughter / Relative / Other)
+
+After adding the caregiver, create a caregiver invitation/connection.
+
+Connection status:
+
+Pending
+Accepted
+Rejected
+Revoked
+
+==================================================
+CAREGIVER INVITATION
+==================================================
+
+The caregiver should receive an invitation.
+
+For DEMO MODE, provide an in-app caregiver invitation.
+
+For real deployment, make the system integration-ready for email/SMS invitation.
+
+The invitation should contain:
+
+"Patient [Patient Name] has invited you to become their caregiver."
+
+Buttons:
+
+ACCEPT
+REJECT
+
+==================================================
+CAREGIVER ACCOUNT
+==================================================
+
+Caregiver must have their own account/login.
+
+Caregiver login should use:
+
+Email
+Password
+
+A caregiver must NOT automatically get access to patients.
+
+Access is granted only after the patient has connected/invited the caregiver and the caregiver accepts the invitation.
+
+==================================================
+CAREGIVER DASHBOARD
+==================================================
+
+After login, show only patients who have explicitly connected with that caregiver.
+
+If the caregiver has no connected patients, show:
+
+"No patients are currently connected to your caregiver account."
+
+Do not show demo patient information.
+
+==================================================
+PATIENT INFORMATION VISIBLE TO CAREGIVER
+==================================================
+
+After the connection is accepted, caregiver can view authorized information such as:
+
+- Patient name
+- Today's medication schedule
+- Taken doses
+- Missed doses
+- Medication adherence
+- Medication history
+- Risk/adherence information
+- Medication reminders
+- Emergency SOS alerts
+- Patient's emergency location when SOS is activated
+
+Do NOT expose unnecessary private information.
+
+==================================================
+EMERGENCY SOS
+==================================================
+
+When a connected patient activates SOS:
+
+The caregiver should receive an emergency alert.
+
+Example:
+
+🚨 EMERGENCY SOS
+
+Patient:
+[Patient Name]
+
+Time:
+[Time]
+
+Location:
+[Current Location]
+
+Buttons:
+
+VIEW LOCATION
+CALL PATIENT
+CALL EMERGENCY CONTACT
+
+The caregiver should only receive this emergency information if they are an authorized/connected caregiver.
+
+==================================================
+PATIENT CONTROL
+==================================================
+
+The patient must be able to:
+
+- View connected caregiver
+- Accept/review caregiver connection
+- Remove caregiver
+- Revoke caregiver access
+
+If the patient removes/revokes the caregiver:
+
+The caregiver must immediately lose access to that patient's information.
+
+==================================================
+MULTIPLE CAREGIVERS
+==================================================
+
+Allow a patient to have more than one authorized caregiver if desired.
+
+Example:
+
+Primary Caregiver
+Secondary Caregiver
+
+The patient should be able to manage these connections.
+
+==================================================
+DATABASE
+==================================================
+
+Create a proper relationship table such as:
+
+patient_caregiver_connections
+
+Fields:
+
+id
+patient_id
+caregiver_id
+relationship
+status
+invited_at
+accepted_at
+revoked_at
+
+Statuses:
+
+PENDING
+ACCEPTED
+REJECTED
+REVOKED
+
+Use proper foreign keys and authorization.
+
+==================================================
+SECURITY
+==================================================
+
+This is extremely important:
+
+A caregiver must NEVER be able to access another patient's information.
+
+Every caregiver API request must verify:
+
+1. Caregiver is logged in.
+2. Caregiver has an ACCEPTED connection with the patient.
+3. The requested patient belongs to that caregiver connection.
+
+If the connection is:
+
+PENDING
+REJECTED
+REVOKED
+
+the caregiver must NOT have access.
+
+Do not rely only on frontend hiding.
+Enforce authorization in the FastAPI backend/API as well.
+
+Test this with at least:
+
+Patient A + Caregiver A
+Patient B + Caregiver B
+
+Caregiver A must NOT be able to access Patient B.
+
+==================================================
+CAREGIVER NAVIGATION
+==================================================
+
+Caregiver should have a separate dashboard/navigation.
+
+Caregiver dashboard:
+
+Connected Patients
+Medication Status
+Medication History
+Adherence
+Risk Information
+Emergency Alerts
+Profile
+Settings
+Logout
+
+Do not show patient-only features such as adding their own medicines.
+
+==================================================
+FINAL TEST
+==================================================
+
+Test this complete workflow:
+
+1. Patient registers.
+2. Patient logs in.
+3. Patient adds caregiver.
+4. Caregiver invitation is created.
+5. Caregiver accepts invitation.
+6. Caregiver logs in.
+7. Caregiver sees connected patient.
+8. Caregiver sees authorized medication information.
+9. Patient activates SOS.
+10. Connected caregiver receives emergency alert.
+11. Caregiver views patient's emergency location.
+12. Patient revokes caregiver access.
+13. Caregiver can no longer access the patient's information.
+
+Also test that an unrelated caregiver cannot access the patient.

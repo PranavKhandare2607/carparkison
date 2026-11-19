@@ -1,0 +1,49 @@
+Fix the following two bugs in my existing Parkinson Care AI project. Do not create a new project or remove any existing features.
+
+## Bug 1: Medication reminder voice is not playing
+
+Currently, the medication reminder appears as a text notification, for example:
+"Hello! It is time for your scheduled Deemol 500 mg dose, scheduled at 17:30. Please follow your prescribed medication schedule."
+
+However, no voice is coming from the browser. Fix the actual cause.
+
+Requirements:
+1. Inspect the existing reminder notification code, JavaScript, browser console errors, and medication scheduler.
+2. Use the browser SpeechSynthesis API (`window.speechSynthesis` and `SpeechSynthesisUtterance`) to speak the reminder aloud.
+3. When a scheduled reminder appears, speak its message using the actual saved medicine name, dosage, and scheduled time.
+4. Add a clearly visible **Test Voice** button on the dashboard or reminder settings page.
+5. Add an **Enable Voice Reminders** setting and explain that the user may need to click a button once to enable audio in the browser.
+6. Wait for speech voices to load when necessary and select an available voice. Handle browsers with no available voice or unsupported speech synthesis.
+7. Prevent duplicate speech for the same reminder. Do not repeatedly speak the message on every dashboard refresh or component render.
+8. If the notification appears while speech is already running, handle it safely without causing repeated or overlapping alerts.
+9. Keep text notifications working even if voice fails. Show a useful error or status message rather than silently failing.
+10. Ensure the spoken message uses the correct patient's medication schedule and timezone.
+11. Do not automatically mark medication as Taken when the voice plays.
+12. Do not claim voice reminders work when the browser is closed or the device is asleep.
+
+Test the feature by clicking Test Voice, then schedule a test reminder a few minutes in the future and verify that the actual medicine name, dosage, and time are spoken. Check the browser console and fix any errors.
+
+## Bug 2: Left sidebar cannot show all features
+
+The dashboard's left navigation contains Overview, Medicines, Reminders, History, Care Assistant, Adherence Risk, Care Circle, Hospitals, Pharmacies, Appointments, and other features. The lower items are hidden and cannot be accessed easily.
+
+Requirements:
+1. Inspect the sidebar's CSS, layout, and container structure.
+2. Make the sidebar independently vertically scrollable using appropriate CSS such as `overflow-y: auto` and `min-height: 0` where required.
+3. Ensure the sidebar fits the available viewport height and that all navigation items can be reached.
+4. Keep the app logo and header readable and avoid overlapping the navigation items.
+5. Add a visible scrollbar when appropriate, while preserving the existing green-and-white design.
+6. On smaller screens, make the navigation responsive and provide a usable menu or drawer.
+7. Ensure every existing navigation item remains present, clickable, and connected to its correct page.
+8. Do not hide or delete features to make the sidebar shorter.
+
+## Final verification
+
+After making changes:
+- Run the app and open the dashboard.
+- Click Test Voice and verify that sound actually plays.
+- Test a scheduled reminder and confirm that the correct medicine details are spoken.
+- Scroll the left sidebar to its bottom and verify that every navigation item is accessible.
+- Check the browser console for errors.
+- Preserve all existing data and working functionality.
+- Report which tests were actually completed and any remaining limitations.
